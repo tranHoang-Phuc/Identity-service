@@ -4,6 +4,7 @@ import com.nimbusds.jose.JOSEException;
 import com.phucth42.identity_service.dto.request.AuthenticationRequest;
 import com.phucth42.identity_service.dto.request.IntrospectRequest;
 import com.phucth42.identity_service.dto.request.LogOutRequest;
+import com.phucth42.identity_service.dto.request.RefreshRequest;
 import com.phucth42.identity_service.dto.response.ApiResponse;
 import com.phucth42.identity_service.dto.response.AuthenticationResponse;
 import com.phucth42.identity_service.dto.response.IntrospectResponse;
@@ -11,6 +12,7 @@ import com.phucth42.identity_service.service.AuthenticationService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,6 +49,15 @@ public class AuthenticationController {
         authenticationService.logOut(request);
         return ApiResponse.<Void>builder()
                 .code(1000)
+                .build();
+    }
+
+    @PostMapping("/refresh")
+    ApiResponse<AuthenticationResponse> refreshToken(@RequestBody RefreshRequest request) throws ParseException, JOSEException {
+        var result = authenticationService.refreshToken(request);
+        return ApiResponse.<AuthenticationResponse>builder()
+                .code(1000)
+                .result(result)
                 .build();
     }
 }

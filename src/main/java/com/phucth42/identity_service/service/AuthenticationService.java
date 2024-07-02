@@ -8,6 +8,7 @@ import com.nimbusds.jwt.SignedJWT;
 import com.phucth42.identity_service.dto.request.AuthenticationRequest;
 import com.phucth42.identity_service.dto.request.IntrospectRequest;
 import com.phucth42.identity_service.dto.request.LogOutRequest;
+import com.phucth42.identity_service.dto.request.RefreshRequest;
 import com.phucth42.identity_service.dto.response.AuthenticationResponse;
 import com.phucth42.identity_service.dto.response.IntrospectResponse;
 import com.phucth42.identity_service.entity.InvalidatedToken;
@@ -119,10 +120,10 @@ public class AuthenticationService {
     public void logOut(LogOutRequest request) throws ParseException, JOSEException {
         var signToken = verifyToken(request.getToken());
 
-        String jit = signToken.getJWTClaimsSet().getJWTID();
+        String jid = signToken.getJWTClaimsSet().getJWTID();
         Date expirationTime = signToken.getJWTClaimsSet().getExpirationTime();
         InvalidatedToken invalidatedToken = InvalidatedToken.builder()
-                .id(jit)
+                .id(jid)
                 .expiryTime(expirationTime)
                 .build();
         invalidatedTokenRepository.save(invalidatedToken);
@@ -139,5 +140,26 @@ public class AuthenticationService {
                 .existsById(signedJWT.getJWTClaimsSet().getJWTID()))
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         return signedJWT;
+    }
+
+    public AuthenticationResponse refreshToken(RefreshRequest request) throws ParseException, JOSEException {
+        var signToken = verifyToken(request.getToken());
+        var jid = signToken.getJWTClaimsSet().getJWTID();
+        var expirationTime = signToken.getJWTClaimsSet().getExpirationTime();
+        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                .id(jid)
+                .expiryTime(expirationTime)
+                .build();
+        invalidatedTokenRepository.save(invalidatedToken);
+        var username = signToken.getJWTClaimsSet().getSubject();
+        var user = userRepository.findByUsername(username);
+        if (user == null) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+        var newToken = generateToken(user);
+        return AuthenticationResponse.builder()
+                .authenticated(true)
+                .token(newToken)
+                .build();
     }
 }
